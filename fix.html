@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>On_Orion - Fitness App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.1/dist/browser-image-compression.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for a cleaner look */
+        /* Light mode scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e5e7eb; /* gray-200 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #9ca3af; /* gray-400 */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; /* gray-500 */
+        }
+
+        /* Dark mode scrollbar */
+        .dark ::-webkit-scrollbar-track {
+            background: #1f2937; /* gray-800 */
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #4b5563; /* gray-600 */
+        }
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; /* gray-500 */
+        }
+        
+        /* Style for the progress circle */
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.5s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        /* Hide all pages by default */
+        .page {
+            display: none;
+        }
+        /* Show the active page */
+        .page.active {
+            display: block;
+        }
+        /* Simple fade-in animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+         /* Added for loading state */
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #f97316; /* Orange */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Styles for the simple post menu */
+        #post-options-menu {
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        }
+
+        /* ADDED: Styles for the progress bar */
+        #upload-progress-container {
+            width: 100%;
+            background-color: #e5e7eb; /* gray-200 */
+            border-radius: 9999px;
+            height: 8px;
+            overflow: hidden;
+        }
+        .dark #upload-progress-container {
+             background-color: #3f3f46; /* zinc-700 */
+        }
+        #upload-progress-bar {
+            height: 100%;
+            background-color: #f97316; /* orange-500 */
+            width: 0%;
+            border-radius: 9999px;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-zinc-900 text-gray-800 dark:text-gray-200 antialiased">
+
+    <div id="auth-screen" class="max-w-md mx-auto min-h-screen flex flex-col items-center justify-center p-8 bg-gray-100 dark:bg-zinc-900">
+        <h1 class="text-4xl font-bold text-orange-500 mb-2">On_Orion</h1>
+        <p class="text-gray-600 dark:text-gray-400 mb-8">Your fitness journey, rewarded.</p>
+        <div class="w-full bg-white dark:bg-zinc-800 p-6 rounded-xl shadow-md">
+            <h2 id="auth-title" class="text-2xl font-bold text-center mb-6 text-gray-800 dark:text-gray-200">Login</h2>
+            <form id="auth-form" class="space-y-4">
+                 <input type="email" id="email" placeholder="Email" class="w-full px-4 py-2 bg-gray-100 dark:bg-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" required>
+                 <input type="password" id="password" placeholder="Password" class="w-full px-4 py-2 bg-gray-100 dark:bg-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" required>
+                 <p id="auth-error" class="text-red-500 text-sm hidden"></p>
+                 <button type="submit" id="auth-button" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg transition-colors">Login</button>
+            </form>
+            <p class="text-center text-sm text-gray-500 mt-4">
+                <a href="#" id="toggle-auth-mode" class="text-orange-500 hover:underline">Don't have an account? Sign Up</a>
+            </p>
+        </div>
+    </div>
+
+
+    <div id="app-container" class="max-w-md mx-auto min-h-screen bg-gray-100 dark:bg-zinc-900 flex-col hidden">
+
+        <header id="app-header" class="px-4 py-3 flex justify-between items-center sticky top-0 bg-gray-100/90 dark:bg-zinc-900/80 backdrop-blur-sm z-20 border-b border-gray-200 dark:border-zinc-800">
+            <h1 id="header-title" class="text-xl font-bold text-orange-500">Social Feed</h1>
+            <div class="flex items-center space-x-4">
+                <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-zinc-800">
+                    <svg id="theme-icon-light" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                    <svg id="theme-icon-dark" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600 dark:text-gray-300 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                </button>
+                <button id="logout-button" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-zinc-800">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                </button>
+            </div>
+        </header>
+
+        <main class="flex-grow p-4 pb-24 overflow-y-auto">
+
+            <div id="page-feed" class="page active animate-fade-in space-y-6">
+                <div id="feed-container" class="space-y-6">
+                    <div class="loader"></div>
+                    <p class="text-center text-gray-500">Loading feed...</p>
+                </div>
+            </div>
+
+            <div id="page-profile" class="page animate-fade-in">
+                <div id="profile-container">
+                     <div class="loader"></div>
+                     <p class="text-center text-gray-500">Loading profile...</p>
+                </div>
+            </div>
+
+        </main>
+        
+        <div id="add-photo-modal" class="hidden fixed inset-0 bg-black/60 z-30 flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-zinc-800 rounded-xl p-6 w-full max-w-sm">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">Post a Photo</h2>
+                    <button id="close-photo-modal-btn" class="p-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                <form id="add-photo-form" class="space-y-4">
+                    <div>
+                        <label for="caption" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Caption</label>
+                        <textarea id="caption" name="caption" rows="3" class="mt-1 block w-full bg-gray-100 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 rounded-md shadow-sm py-2 px-3 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-orange-500 focus:border-orange-500" placeholder="What's on your mind?"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Photo</label>
+                        <input type="file" id="photo-input" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100" required/>
+                    </div>
+                    
+                    <div id="upload-progress-container" class="hidden w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2.5">
+                        <div id="upload-progress-bar" class="bg-orange-500 h-2.5 rounded-full" style="width: 0%"></div>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg">Post Photo</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="add-workout-modal" class="hidden fixed inset-0 bg-black/60 z-30 flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-zinc-800 rounded-xl p-6 w-full max-w-sm">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">Log New Workout</h2>
+                    <button id="close-workout-modal-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                <form id="log-workout-form" class="space-y-4">
+                    <div>
+                        <label for="exercise" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Exercise</label>
+                        <select id="exercise" name="exercise" class="mt-1 block w-full bg-gray-100 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 rounded-md shadow-sm py-2 px-3 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-orange-500 focus:border-orange-500">
+                            <option>Push-ups</option>
+                            <option>Squats</option>
+                            <option>Pull-ups</option>
+                            <option>Weight Lifting</option>
+                        </select>
+                    </div>
+                     <div>
+                        <label for="reps" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Reps</label>
+                        <input type="number" name="reps" id="reps" class="mt-1 block w-full bg-gray-100 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-gray-200 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500" required>
+                    </div>
+                     <div>
+                        <label for="sets" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Sets</label>
+                        <input type="number" name="sets" id="sets" class="mt-1 block w-full bg-gray-100 dark:bg-zinc-700 border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-gray-200 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500" required>
+                    </div>
+                     <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Video Proof (Optional)</label>
+                         <input type="file" id="video-proof-input" accept="video/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"/>
+                    </div>
+                    <button type="submit" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg">Log Workout & Get Points</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="post-menu-backdrop" class="hidden fixed inset-0 bg-black/50 z-40"></div>
+        <div id="post-options-menu" class="hidden fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 z-50 transform translate-y-full">
+            <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg p-4 space-y-2">
+                <button id="open-photo-modal-btn" class="w-full flex items-center p-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded-lg">
+                   <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                   Post a Photo
+                </button>
+                <button id="open-workout-modal-btn" class="w-full flex items-center p-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded-lg">
+                   <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                   Log a Workout
+                </button>
+           </div>
+        </div>
+
+
+        <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/90 dark:bg-zinc-800/80 backdrop-blur-sm border-t border-gray-200 dark:border-zinc-700 z-10">
+            <div class="flex justify-around">
+                <a href="#" class="nav-item flex-1 text-center py-3 text-orange-500 dark:text-orange-400" data-page="feed" data-title="Social Feed">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
+                    <span class="text-xs">Home</span>
+                </a>
+                
+                <a href="#" id="add-btn" class="flex-1 text-center py-3 text-gray-500 -mt-4">
+                    <div class="bg-orange-500 shadow-lg shadow-orange-500/50 rounded-full h-16 w-16 flex items-center justify-center mx-auto border-4 border-gray-100 dark:border-zinc-900">
+                        <svg id="add-icon" xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                    </div>
+                </a>
+                
+                <a href="#" class="nav-item flex-1 text-center py-3 text-gray-500 dark:text-gray-400" data-page="profile" data-title="My Profile">
+                   <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                    <span class="text-xs">Profile</span>
+                </a>
+            </div>
+        </nav>
+
+    </div>
+
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            signOut,
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            doc, 
+            setDoc,
+            getDoc,
+            onSnapshot,
+            query,
+            orderBy,
+            serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { 
+            getStorage, 
+            ref, 
+            // MODIFIED: Import 'uploadBytesResumable' instead of 'uploadBytes'
+            uploadBytesResumable, 
+            getDownloadURL 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+
+        // ===================================================================================
+        // 1. FIREBASE CONFIGURATION
+        // ===================================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBiBH0PruNJgox8WNvdmikwpLfJCNF3tDg",
+            authDomain: "feetug-a1e37.firebaseapp.com",
+            projectId: "feetug-a1e37",
+            storageBucket: "feetug-a1e37.appspot.com",
+            messagingSenderId: "873124553603",
+            appId: "1:873124553603:web:340475208ac5de5a294cb6",
+            measurementId: "G-8GSL2D2ZV"
+        };
+        
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        // ===================================================================================
+        // 2. DOM ELEMENT REFERENCES
+        // ===================================================================================
+        // ... (most references unchanged) ...
+        const authScreen = document.getElementById('auth-screen');
+        const appContainer = document.getElementById('app-container');
+        const authForm = document.getElementById('auth-form');
+        const authTitle = document.getElementById('auth-title');
+        const authButton = document.getElementById('auth-button');
+        const toggleAuthModeLink = document.getElementById('toggle-auth-mode');
+        const authError = document.getElementById('auth-error');
+        const logoutButton = document.getElementById('logout-button');
+        const feedContainer = document.getElementById('feed-container');
+        const profileContainer = document.getElementById('profile-container');
+        
+        // Modals
+        const workoutModal = document.getElementById('add-workout-modal');
+        const photoModal = document.getElementById('add-photo-modal');
+        
+        // Forms
+        const logWorkoutForm = document.getElementById('log-workout-form');
+        const addPhotoForm = document.getElementById('add-photo-form');
+        
+        // Simple Post Menu Elements
+        const postMenuBackdrop = document.getElementById('post-menu-backdrop');
+        const postOptionsMenu = document.getElementById('post-options-menu');
+        const addBtn = document.getElementById('add-btn');
+        const addIcon = document.getElementById('add-icon');
+        const openPhotoModalBtn = document.getElementById('open-photo-modal-btn');
+        const openWorkoutModalBtn = document.getElementById('open-workout-modal-btn');
+
+
+        let isLoginMode = true;
+
+        // ===================================================================================
+        // 3. AUTHENTICATION LOGIC
+        // ===================================================================================
+        
+        // ... (auth logic unchanged) ...
+         onAuthStateChanged(auth, user => {
+            if (user) {
+                authScreen.classList.add('hidden');
+                appContainer.style.display = 'flex';
+                listenToFeed();
+            } else {
+                authScreen.classList.remove('hidden');
+                appContainer.style.display = 'none';
+            }
+        });
+
+        toggleAuthModeLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            isLoginMode = !isLoginMode;
+            authTitle.textContent = isLoginMode ? 'Login' : 'Sign Up';
+            authButton.textContent = isLoginMode ? 'Login' : 'Sign Up';
+            toggleAuthModeLink.textContent = isLoginMode ? "Don't have an account? Sign Up" : "Already have an account? Login";
+            authError.classList.add('hidden');
+        });
+
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            authError.classList.add('hidden');
+            try {
+                if (isLoginMode) {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else {
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    const user = userCredential.user;
+                    const username = email.split('@')[0];
+                    await setDoc(doc(db, 'users', user.uid), {
+                        username: username,
+                        email: user.email,
+                        title: 'Beginner',
+                        achievementType: 'none',
+                        points: 0,
+                        followers: [],
+                        following: [],
+                        profilePicUrl: `https://placehold.co/100x100/e5e7eb/4b5563?text=${username[0].toUpperCase()}`
+                    });
+                    await setDoc(doc(db, 'wallets', user.uid), {
+                        balance: 0,
+                        refundableGoal: 1000,
+                        progress: 0
+                    });
+                }
+            } catch (error) {
+                authError.textContent = error.message;
+                authError.classList.remove('hidden');
+            }
+        });
+
+        logoutButton.addEventListener('click', () => signOut(auth));
+
+
+        // ===================================================================================
+        // 4. CREATING DATA (FORM SUBMISSIONS)
+        // ===================================================================================
+        
+        // Handle Workout Log Submission
+        // NOTE: This still uploads the full, uncompressed video and will be slow.
+        logWorkoutForm.addEventListener('submit', async (e) => {
+            // ... (workout form logic unchanged) ...
+             e.preventDefault();
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const exercise = logWorkoutForm.exercise.value;
+            const reps = logWorkoutForm.reps.value;
+            const sets = logWorkoutForm.sets.value;
+            const videoFile = logWorkoutForm['video-proof-input'].files[0];
+            const submitButton = logWorkoutForm.querySelector('button[type="submit"]');
+
+            if (!exercise || !reps || !sets) return alert("Please fill out all required fields.");
+            
+            submitButton.disabled = true;
+            submitButton.textContent = 'Logging...';
+
+            try {
+                let videoUrl = null;
+                // Check if a video was selected
+                if (videoFile) {
+                    submitButton.textContent = 'Uploading Video...';
+                    // Create a storage reference
+                    const filePath = `workout_proof/${user.uid}/${Date.now()}_${videoFile.name}`;
+                    const storageRef = ref(storage, filePath);
+                    // Upload the file
+                    const snapshot = await uploadBytes(storageRef, videoFile);
+                    // Get the download URL
+                    videoUrl = await getDownloadURL(snapshot.ref);
+                }
+                
+                submitButton.textContent = 'Saving...';
+                const postText = `Just logged a workout: ${sets} sets of ${reps} reps of ${exercise}! Check out the proof.`;
+                
+                await addDoc(collection(db, "posts"), {
+                    postType: 'workout',
+                    userId: user.uid,
+                    text: postText,
+                    exercise,
+                    reps: parseInt(reps),
+                    sets: parseInt(sets),
+                    imageUrl: videoUrl, // Use videoUrl here
+                    flexes: 0,
+                    comments: 0,
+                    timestamp: serverTimestamp()
+                });
+
+                logWorkoutForm.reset();
+                workoutModal.classList.add('hidden');
+            } catch (error) {
+                console.error("Error logging workout: ", error);
+                alert("Failed to log workout.");
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Log Workout & Get Points';
+            }
+        });
+
+        
+        // ==========================================================
+        // !! MODIFIED CODE BLOCK: Handle Photo Post Submission !!
+        // ==========================================================
+        addPhotoForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const caption = addPhotoForm.caption.value;
+            const photoFile = addPhotoForm['photo-input'].files[0];
+            
+            // Get references to the new UI elements
+            const submitButton = addPhotoForm.querySelector('button[type="submit"]');
+            const progressContainer = document.getElementById('upload-progress-container');
+            const progressBar = document.getElementById('upload-progress-bar');
+            
+            if (!photoFile) return alert("Please select a photo to upload.");
+
+            submitButton.disabled = true;
+            submitButton.textContent = 'Compressing...';
+            progressContainer.classList.remove('hidden'); // Show the progress bar container
+            progressBar.style.width = '0%';
+
+            // 1. Compress the image
+            const options = {
+                maxSizeMB: 1,
+                maxWidthOrHeight: 1920,
+                useWebWorker: true
+            };
+
+            let compressedFile;
+            try {
+                compressedFile = await imageCompression(photoFile, options);
+            } catch (error) {
+                console.error("Image compression error: ", error);
+                alert("Failed to compress image.");
+                submitButton.disabled = false;
+                submitButton.textContent = 'Post Photo';
+                progressContainer.classList.add('hidden');
+                return;
+            }
+
+            // 2. Create file path and storage reference
+            const filePath = `posts/${user.uid}/${Date.now()}_${compressedFile.name}`;
+            const storageRef = ref(storage, filePath);
+
+            // 3. Use uploadBytesResumable
+            const uploadTask = uploadBytesResumable(storageRef, compressedFile);
+
+            // 4. Listen to upload progress
+            uploadTask.on('state_changed',
+                (snapshot) => {
+                    // Update progress
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    progressBar.style.width = progress + '%';
+                    submitButton.textContent = `Uploading... ${Math.round(progress)}%`;
+                },
+                (error) => {
+                    // Handle unsuccessful uploads
+                    console.error("Upload failed: ", error);
+                    alert("Upload failed. Please try again.");
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Post Photo';
+                    progressContainer.classList.add('hidden');
+                },
+                async () => {
+                    // Handle successful uploads on complete
+                    submitButton.textContent = 'Saving Post...';
+
+                    try {
+                        // 5. Get the public URL
+                        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+
+                        // 6. Create post document in Firestore
+                        await addDoc(collection(db, "posts"), {
+                            postType: 'photo',
+                            userId: user.uid,
+                            text: caption,
+                            imageUrl: downloadURL,
+                            flexes: 0,
+                            comments: 0,
+                            timestamp: serverTimestamp()
+                        });
+
+                        // 7. Reset and close modal
+                        addPhotoForm.reset();
+                        photoModal.classList.add('hidden');
+                        togglePostMenu(false);
+
+                    } catch (dbError) {
+                        console.error("Error saving post to database: ", dbError);
+                        alert("Upload succeeded, but failed to save post.");
+                    } finally {
+                        // Reset button and hide progress bar regardless
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Post Photo';
+                        progressContainer.classList.add('hidden');
+                        progressBar.style.width = '0%';
+                    }
+                }
+            );
+        });
+
+
+        // ===================================================================================
+        // 5. FIRESTORE DATA RENDERING
+        // ===================================================================================
+        
+        // ... (data rendering logic unchanged) ...
+         function listenToFeed() {
+            const postsQuery = query(collection(db, "posts"), orderBy("timestamp", "desc"));
+            onSnapshot(postsQuery, (snapshot) => {
+                feedContainer.innerHTML = '';
+                if (snapshot.empty) {
+                    feedContainer.innerHTML = '<p class="text-center text-gray-500">No posts yet. Be the first!</p>';
+                    return;
+                }
+                snapshot.forEach(doc => renderPost(doc.data()));
+            });
+        }
+
+        async function renderPost(postData) {
+            const userDoc = await getDoc(doc(db, "users", postData.userId));
+            if (!userDoc.exists()) return;
+            const userData = userDoc.data();
+            
+            const postElement = document.createElement('div');
+            postElement.className = "bg-white dark:bg-zinc-800 rounded-xl overflow-hidden border border-gray-200 dark:border-zinc-700";
+            const timeAgo = postData.timestamp ? new Date(postData.timestamp.seconds * 1000).toLocaleString() : 'Just now';
+
+            let mediaHTML = '';
+            if(postData.imageUrl) {
+                if(postData.postType === 'workout') {
+                    // It's a video
+                    mediaHTML = `<video src="${postData.imageUrl}" controls class="w-full h-auto bg-black"></video>`;
+                } else {
+                    // It's a photo
+                    mediaHTML = `<img src="${postData.imageUrl}" alt="User post" class="w-full h-auto object-cover">`;
+                }
+            }
+
+
+            const getAchievementIcon = (type) => {
+                if (type === 'strength') {
+                    return `<svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-amber-600 dark:text-amber-300" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.369-6.618c1.226.244 2.135.539 2.872 1.234z" /></svg>`;
+                } else if (type === 'athletic') {
+                    return `<svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-amber-600 dark:text-amber-300" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>`;
+                }
+                return '';
+            };
+            
+            const achievementIconHTML = getAchievementIcon(userData.achievementType);
+            const titleBadgeHTML = userData.title !== 'Beginner' ? `
+                <span class="inline-flex items-center bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 text-xs font-medium px-2 py-0.5 rounded-full">
+                    ${achievementIconHTML.replace('h-3 w-3', 'h-3 w-3 mr-1')}
+                    ${userData.title}
+                </span>` : '';
+
+
+            postElement.innerHTML = `
+                <div class="p-4">
+                    <div class="flex items-center mb-3">
+                        <div class="relative mr-3">
+                            <img src="${userData.profilePicUrl}" alt="User Avatar" class="w-10 h-10 rounded-full">
+                             ${achievementIconHTML ? `<div class="absolute -bottom-1 -right-1 bg-amber-100 dark:bg-amber-900/50 p-1 rounded-full border-2 border-white dark:border-zinc-800">${achievementIconHTML}</div>` : ''}
+                        </div>
+                        <div class="flex-grow">
+                            <p class="font-semibold text-gray-900 dark:text-gray-100">${userData.username}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${timeAgo}</p>
+                        </div>
+                        <div class="ml-auto">
+                           ${titleBadgeHTML}
+                        </div>
+                    </div>
+                    <p class="text-gray-700 dark:text-gray-300 mb-4">${postData.text}</p>
+                </div>
+                ${mediaHTML}
+                <div class="p-4 flex justify-between items-center text-gray-500 dark:text-gray-400">
+                     <div class="flex items-center space-x-4">
+                         <button class="flex items-center space-x-2 hover:text-orange-500 dark:hover:text-orange-400">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.787l.25.125a2 2 0 002.29-1.787v-5.43m3.055 4.209v-5.43a2 2 0 00-1.106-1.787l-.25-.125a2 2 0 00-2.29 1.787v5.43m3.055-4.209a2 2 0 002.29-1.787l.25.125a2 2 0 001.106 1.787v5.43a2 2 0 00-1.106 1.787l-.25-.125a2 2 0 00-2.29-1.787v-5.43z" /></svg>
+                             <span>Flex (${postData.flexes || 0})</span>
+                         </button>
+                         <button class="flex items-center space-x-2 hover:text-orange-500 dark:hover:text-orange-400">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.08-3.239A8.962 8.962 0 012 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM4.416 11.416a6.96 6.96 0 003.823 3.823L7.239 17a6.96 6.96 0 00-.023-3.005l-2.8 1.42z" clip-rule="evenodd" /></svg>
+                             <span>Comment (${postData.comments || 0})</span>
+                         </button>
+                    </div>
+                     <button class="flex items-center space-x-2 hover:text-orange-500 dark:hover:text-orange-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                        <span>Chat</span>
+                     </button>
+                </div>
+            `;
+            feedContainer.appendChild(postElement);
+        }
+
+        async function renderProfile() {
+            // ... (profile rendering logic unchanged) ...
+            profileContainer.innerHTML = '<div class="loader"></div>';
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (!userDoc.exists()) {
+                profileContainer.innerHTML = '<p class="text-center text-gray-500">Could not find user profile.</p>';
+                return;
+            };
+            const userData = userDoc.data();
+            
+            const walletDoc = await getDoc(doc(db, "wallets", user.uid));
+            const walletData = walletDoc.exists() ? walletDoc.data() : { balance: 0 };
+
+            const getAchievementIcon = (type) => {
+                 if (type === 'strength') {
+                    return `<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1.5 -ml-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.369-6.618c1.226.244 2.135.539 2.872 1.234z" /></svg>`;
+                } else if (type === 'athletic') {
+                    return `<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1.5 -ml-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>`;
+                }
+                return '';
+            }
+
+            profileContainer.innerHTML = `
+                <div class="flex flex-col items-center text-center">
+                    <img src="${userData.profilePicUrl}" alt="User Profile" class="w-24 h-24 rounded-full border-4 border-white dark:border-zinc-800 shadow-md mb-4">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">${userData.username}</h2>
+                    <div class="flex items-center justify-center space-x-2 mt-1">
+                        <p class="text-orange-500 dark:text-orange-400">@${userData.username}</p>
+                        ${userData.title !== 'Beginner' ? `
+                        <span class="inline-flex items-center bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 text-xs font-medium px-2.5 py-1 rounded-full">
+                           ${getAchievementIcon(userData.achievementType)}
+                            ${userData.title}
+                        </span>` : ''}
+                    </div>
+                    
+                    <div class="bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg p-4 w-full my-6">
+                        <div class="flex justify-between items-center mb-1">
+                            <p class="font-semibold text-gray-800 dark:text-gray-200">Next Level: Gladiator</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${userData.points || 0} / 10,000 pts</p>
+                        </div>
+                        <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2.5">
+                             <div class="bg-amber-500 h-2.5 rounded-full" style="width: ${((userData.points || 0) / 10000) * 100}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-4 w-full text-center mb-8">
+                        <div>
+                            <p class="text-xl font-bold text-gray-900 dark:text-gray-100">0</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Workouts</p>
+                        </div>
+                         <div>
+                            <p class="text-xl font-bold text-gray-900 dark:text-gray-100">${userData.following.length}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Following</p>
+                        </div>
+                         <div>
+                            <p class="text-xl font-bold text-gray-900 dark:text-gray-100">${userData.followers.length}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Followers</p>
+                        </div>
+                    </div>
+
+                    <h3 class="text-lg font-semibold self-start mb-3 text-gray-900 dark:text-gray-100">Today's Stats</h3>
+                    <div class="grid grid-cols-2 gap-4 mb-8 w-full">
+                        <div class="bg-white dark:bg-zinc-800 p-4 rounded-xl border border-gray-200 dark:border-zinc-700 flex flex-col items-center justify-center text-center">
+                            <div class="relative w-24 h-24">
+                                <svg class="w-full h-full" viewBox="0 0 100 100"><circle class="text-gray-200 dark:text-zinc-700" stroke-width="8" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" /><circle class="progress-ring__circle text-orange-400" stroke-width="8" stroke-dasharray="282.6" stroke-dashoffset="282.6" stroke-linecap="round" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" /></svg>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center"><span class="text-xl font-bold text-gray-900 dark:text-gray-100">0</span><span class="text-xs text-gray-500 dark:text-gray-400">Steps</span></div>
+                            </div>
+                        </div>
+                        <div class="bg-white dark:bg-zinc-800 p-4 rounded-xl border border-gray-200 dark:border-zinc-700 flex flex-col items-center justify-center text-center">
+                            <div class="relative w-24 h-24">
+                                <svg class="w-full h-full" viewBox="0 0 100 100"><circle class="text-gray-200 dark:text-zinc-700" stroke-width="8" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" /><circle class="progress-ring__circle text-amber-400" stroke-width="8" stroke-dasharray="282.6" stroke-dashoffset="282.6" stroke-linecap="round" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" /></svg>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center"><span class="text-xl font-bold text-gray-900 dark:text-gray-100">0</span><span class="text-xs text-gray-500 dark:text-gray-400">Kcal</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 class="text-lg font-semibold self-start mb-3 text-gray-900 dark:text-gray-100">My Wallet</h3>
+                     <div class="w-full">
+                         <div class="bg-gradient-to-br from-orange-500 to-amber-500 p-6 rounded-xl mb-4 text-center shadow-lg">
+                             <p class="text-sm text-white/80 uppercase tracking-wider">Refundable Balance</p>
+                             <p class="text-4xl font-bold text-white mt-2">₹${walletData.balance.toFixed(2)}</p>
+                             <button class="mt-4 bg-white/20 hover:bg-white/30 text-white font-semibold py-2 px-6 rounded-full text-sm">Withdraw</button>
+                         </div>
+                    </div>
+                </div>
+            `;
+        }
+
+
+        // ===================================================================================
+        // 6. UI & NAVIGATION LOGIC
+        // ===================================================================================
+        
+        // ... (UI logic unchanged) ...
+        const navItems = document.querySelectorAll('.nav-item');
+        const pages = document.querySelectorAll('.page');
+        const headerTitle = document.getElementById('header-title');
+        const closeWorkoutModalBtn = document.getElementById('close-workout-modal-btn');
+        const closePhotoModalBtn = document.getElementById('close-photo-modal-btn');
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const lightIcon = document.getElementById('theme-icon-light');
+        const darkIcon = document.getElementById('theme-icon-dark');
+        
+        // Theme switching logic
+        const applyTheme = (theme) => {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                darkIcon.classList.add('hidden'); 
+                lightIcon.classList.remove('hidden');
+            } else {
+                document.documentElement.classList.remove('dark');
+                lightIcon.classList.add('hidden'); 
+                darkIcon.classList.remove('hidden');
+            }
+        };
+        const savedTheme = localStorage.getItem('theme');
+        applyTheme(savedTheme || 'dark');
+        
+        themeToggleBtn.addEventListener('click', () => {
+             const isDarkMode = document.documentElement.classList.contains('dark');
+             const newTheme = isDarkMode ? 'light' : 'dark';
+             localStorage.setItem('theme', newTheme);
+             applyTheme(newTheme);
+        });
+
+        // Page navigation
+        const showPage = (pageId, title) => {
+            pages.forEach(p => p.classList.remove('active'));
+            document.getElementById(`page-${pageId}`).classList.add('active');
+            headerTitle.textContent = title;
+            if (pageId === 'profile') renderProfile();
+        };
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                navItems.forEach(n => {
+                    n.classList.remove('text-orange-500', 'dark:text-orange-400');
+                    n.classList.add('text-gray-500', 'dark:text-gray-400');
+                });
+                item.classList.add('text-orange-500', 'dark:text-orange-400');
+                showPage(item.dataset.page, item.dataset.title);
+            });
+        });
+
+        // Simple Post Menu Logic
+        const togglePostMenu = (show) => {
+            if (show) {
+                postMenuBackdrop.classList.remove('hidden');
+                postOptionsMenu.classList.remove('hidden');
+                setTimeout(() => {
+                    postMenuBackdrop.style.opacity = '1';
+                    postOptionsMenu.style.transform = 'translateY(0)';
+                    addIcon.style.transform = 'rotate(45deg)';
+                }, 10);
+            } else {
+                postMenuBackdrop.style.opacity = '0';
+                postOptionsMenu.style.transform = 'translateY(100%)';
+                addIcon.style.transform = 'rotate(0deg)';
+                setTimeout(() => {
+                    postMenuBackdrop.classList.add('hidden');
+                    postOptionsMenu.classList.add('hidden');
+                }, 300);
+            }
+        };
+        
+        addBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const isHidden = postOptionsMenu.classList.contains('hidden');
+            togglePostMenu(isHidden);
+        });
+        
+        postMenuBackdrop.addEventListener('click', () => togglePostMenu(false));
+        
+        openWorkoutModalBtn.addEventListener('click', () => {
+            workoutModal.classList.remove('hidden');
+            togglePostMenu(false);
+        });
+
+        openPhotoModalBtn.addEventListener('click', () => {
+            photoModal.classList.remove('hidden');
+            togglePostMenu(false);
+        });
+
+        // Modal close listeners
+        closeWorkoutModalBtn.addEventListener('click', () => workoutModal.classList.add('hidden'));
+        closePhotoModalBtn.addEventListener('click', () => photoModal.classList.add('hidden'));
+        workoutModal.addEventListener('click', (e) => { if (e.target === workoutModal) workoutModal.classList.add('hidden'); });
+        photoModal.addEventListener('click', (e) => { if (e.target === photoModal) photoModal.classList.add('hidden'); });
+
+        showPage('feed', 'Social Feed');
+    </script>
+</body>
+</html>
